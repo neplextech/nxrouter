@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "strictNullChecks": true,
+        "noImplicitAny": true,
+        "isolatedModules": true,
+        "target": "ES6",
+        "lib": ["es2020"],
+        "noEmit": true,
+        "newLine": "lf",
+        "outDir": "./dist",
+        "forceConsistentCasingInFileNames": true
+    },
+    "include": ["./src"]
+}

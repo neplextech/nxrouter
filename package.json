@@ -1,0 +1,39 @@
+{
+  "name": "nxrouter",
+  "packageManager": "yarn@3.5.0",
+  "description": "Simple, functional http-client router for JavaScript/TypeScript",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "test": "node ./test/index.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neplextech/nxrouter.git"
+  },
+  "keywords": [
+    "router",
+    "http",
+    "client",
+    "api",
+    "node",
+    "javascript",
+    "typescript",
+    "fetch",
+    "functional"
+  ],
+  "author": "Neplex Technologies",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/neplextech/nxrouter/issues"
+  },
+  "homepage": "https://github.com/neplextech/nxrouter#readme",
+  "devDependencies": {
+    "tsup": "^6.7.0",
+    "typescript": "^5.0.4"
+  }
+}
