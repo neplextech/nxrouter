@@ -2,47 +2,59 @@
 
 import type { NxRouter, NxRequestMethod } from './index';
 
-const REFLECTORS = ["toJSON", "toString", "valueOf"] as const;
-const METHODS: Array<Lowercase<NxRequestMethod>> = ["get", "put", "post", "patch", "delete", "connect", "head", "trace", "options"];
-const noop = () => undefined;
+export const REFLECTORS = ['toJSON', 'toString', 'valueOf'] as const;
+export const METHODS: Array<Lowercase<NxRequestMethod>> = [
+    'get',
+    'put',
+    'post',
+    'patch',
+    'delete',
+    'connect',
+    'head',
+    'trace',
+    'options'
+];
+export const noop = () => undefined;
 
-type ParamArgs = string | number | boolean;
+export type ParamArgs = string | number | boolean;
 
-export type ProxyHandlerReq = {
+export type HttpMethodImplementor = {
     [prop in Lowercase<NxRequestMethod>]: <T = unknown>(data?: unknown) => Promise<T>;
 };
 
-export type ProxyReflectorHandler = {
+export type MethodImplementor<T extends object = {}> = HttpMethodImplementor & ReflectionHandler & T;
+
+export type ReflectionHandler = {
     [prop in (typeof REFLECTORS)[number]]: (data?: { query: Record<string, string> }) => string;
 };
 
 export type NestedRouteCalls = {
-    (...args: ParamArgs[]): NxRouterExecutor;
-    [prop: string]: NxRouterExecutor;
+    (...args: ParamArgs[]): DefaultNxRouterExecutor;
+    [prop: string]: DefaultNxRouterExecutor;
 };
 
-export type PathRegisterFunc = NestedRouteCalls & NxRouterExecutor;
+export type PathRegisterFunc = NestedRouteCalls & DefaultNxRouterExecutor;
 
-export type ProxyHandlerPath = {
+export type UntypedPath = {
     [prop: string]: PathRegisterFunc;
 };
 
-export type NxRouterExecutor = ProxyHandlerReq & ProxyReflectorHandler & ProxyHandlerPath & NestedRouteCalls;
+export type DefaultNxRouterExecutor = HttpMethodImplementor & ReflectionHandler & UntypedPath & NestedRouteCalls;
 
-export function createRouter(nx: NxRouter): NxRouterExecutor {
+export function createRouter<N extends object = DefaultNxRouterExecutor>(nx: NxRouter<N>): N {
     const params: string[] = [];
 
     const handler = {
         get(_target, p: string, _receiver) {
-            if (METHODS.indexOf(p as typeof METHODS[number]) !== -1) {
+            if (METHODS.indexOf(p as (typeof METHODS)[number]) !== -1) {
                 return (data?: object & { query?: Record<string, string> }) => {
                     const queryParams = data?.query
                         ? Object.entries(data.query)
-                            .map(([m, n]) => `${m}=${n}`)
-                            .join("&")
+                              .map(([m, n]) => `${m}=${n}`)
+                              .join('&')
                         : null;
                     return nx.dispatchRequest({
-                        path: `/${params.join("/")}${queryParams ? "?" + queryParams : ""}`,
+                        path: `/${params.join('/')}${queryParams ? '?' + queryParams : ''}`,
                         data: data || {},
                         method: p.toUpperCase() as NxRequestMethod
                     });
@@ -51,10 +63,10 @@ export function createRouter(nx: NxRouter): NxRouterExecutor {
                 return (data?: { query?: Record<string, string> }) => {
                     const queryParams = data?.query
                         ? Object.entries(data.query)
-                            .map(([m, n]) => `${m}=${n}`)
-                            .join("&")
+                              .map(([m, n]) => `${m}=${n}`)
+                              .join('&')
                         : null;
-                    return `/${params.join("/")}${queryParams ? "?" + queryParams : ""}`;
+                    return `/${params.join('/')}${queryParams ? '?' + queryParams : ''}`;
                 };
             }
 
@@ -67,5 +79,5 @@ export function createRouter(nx: NxRouter): NxRouterExecutor {
         }
     } as ProxyHandler<typeof noop>;
 
-    return new Proxy(noop, handler) as unknown as NxRouterExecutor;
+    return new Proxy(noop, handler) as unknown as N;
 }

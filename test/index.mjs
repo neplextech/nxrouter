@@ -3,7 +3,7 @@ import { NxRouter } from '../dist/index.mjs';
 const BASE = 'https://my-json-server.typicode.com/typicode';
 
 const client = new NxRouter({
-    async onRequest(router, options) {
+    async onRequest(options) {
         console.log(`Requesting ${options.path}`);
         const res = await fetch(`${BASE}${options.path}`, {
             method: options.method,
