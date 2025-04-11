@@ -1,23 +1,31 @@
-import { NxRouter } from '../dist/index.mjs';
+import { createRouter } from '../dist/index.mjs';
 
 const BASE = 'https://my-json-server.typicode.com/typicode';
 
-const client = new NxRouter({
-    async onRequest(options) {
-        console.log(`Requesting ${options.path}`);
-        const res = await fetch(`${BASE}${options.path}`, {
-            method: options.method,
-            ...options.data
-        });
-
+// Create router instance
+const client = createRouter(BASE, {
+    interceptResponse: async (res) => {
         if (!res.ok) throw new Error(`Failed with status code ${res.status}`);
-
-        return await res.json();
+        return res.json();
     }
 });
 
-// get /demo/posts
-console.log(await client.api.demo.posts.get());
+// Test API calls
+async function runTest() {
+    // Log request path for demo posts
+    console.log('Request path for posts: /demo/posts');
 
-// get /demo/posts/1
-console.log(await client.api.demo.posts(1).get());
+    // GET /demo/posts
+    console.log('Getting all posts:');
+    console.log(await client.demo.posts.$get());
+
+    // GET /demo/posts/1
+    console.log('Getting post with id 1:');
+    console.log(await client.demo.posts(1).$get());
+
+    // testing string
+    console.log('Testing string:');
+    console.log(client.demo.posts('1').toString());
+}
+
+runTest().catch(console.error);

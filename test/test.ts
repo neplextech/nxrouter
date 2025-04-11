@@ -1,42 +1,55 @@
-import { NxRouter, MethodImplementor, ParamArgs } from '../src/index';
+import { createRouter } from '../src/index';
 
 // base url endpoint
 const BASE = 'https://my-json-server.typicode.com/typicode';
 
-interface ApiRoutes {
-    demo: {
-        posts: MethodImplementor<{
-            (id: ParamArgs): MethodImplementor;
-        }>;
-    };
-}
-
-// nxrouter
-const client = new NxRouter<ApiRoutes>({
-    // request implementor
-    async onRequest(options) {
-        console.log(`Requesting ${options.path}`);
-
-        // here we make request using fetch api
-        const res = await fetch(`${BASE}${options.path}`, {
-            method: options.method,
-            ...options.data
-        });
-
-        if (!res.ok) throw new Error(`Failed with status code ${res.status}`);
-
-        // and return json response
-        return await res.json();
-    }
-});
-
-interface APIResponse {
+// Define API types
+interface Post {
     id: number;
     title: string;
 }
 
-// initiate GET /demo/posts
-console.log(await client.api.demo.posts.get<APIResponse[]>());
+// Define route structure with response types
+interface ApiRoutes {
+    demo: {
+        posts: {
+            (id: string | number): { $get: Post };
+            $get: Post[]; // Return type definition, not the actual method
+        };
+        $get: { name: string; description: string }; // Method on the demo node itself
+    };
+}
 
-// initiate GET /demo/posts/1
-console.log(await client.api.demo.posts(1).get<APIResponse>());
+// Create router instance
+const client = createRouter<ApiRoutes>(BASE, {
+    // Optional response interceptor
+    interceptResponse: async (res) => {
+        if (!res.ok) throw new Error(`Failed with status code ${res.status}`);
+        return res.json();
+    }
+});
+
+// Test API calls
+async function runTest() {
+    // Log request path
+    console.log('Request path for posts:', client.demo.posts);
+
+    // initiate GET /demo/posts
+    console.log('Getting all posts:');
+    console.log(await client.demo.posts.$get());
+
+    // initiate GET /demo/posts/1
+    console.log('Getting post with id 1:');
+    console.log(await client.demo.posts(1).$get());
+
+    // Testing method on a node that also has child routes
+    // initiate GET /demo
+    console.log('Getting demo info:');
+    console.log(await client.demo.$get());
+
+    // testing string
+    console.log('Testing string:');
+    console.log(client.demo.posts('1').toString());
+}
+
+runTest().catch(console.error);

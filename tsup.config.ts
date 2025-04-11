@@ -1,4 +1,5 @@
-import { defineConfig } from "tsup";
+import { defineConfig } from 'tsup';
+import { esbuildPluginUseMacro } from 'use-macro';
 
 export default defineConfig({
     clean: true,
@@ -8,5 +9,6 @@ export default defineConfig({
     entry: ['./src/index.ts'],
     dts: true,
     silent: true,
-    sourcemap: 'inline'
+    sourcemap: 'inline',
+    esbuildPlugins: [esbuildPluginUseMacro()]
 });

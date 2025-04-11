@@ -1,111 +1,173 @@
 # nxrouter
 
-Simple, functional http-client router for JavaScript/TypeScript
+Simple, functional http-client router for JavaScript/TypeScript built on top of the Fetch API. It allows you to define a router with type-safe endpoints and methods, making it easy to work with APIs in a structured way.
 
-# Features
+## Features
 
-* Easy to setup
-* Functional API
-* Works with any http client
-* Simple API
-* Zero dependencies
-* TypeScript support
+-   Easy to setup
+-   Functional API
+-   Type-safe endpoints with TypeScript
+-   Zero dependencies
+-   Tiny footprint
+-   Flexible routing with methods on any node level
 
-# Installation
+## Installation
 
 ```sh
 $ npm install --save nxrouter
 ```
 
-# Example
+## Example
 
 ```ts
-import { NxRouter, MethodImplementor, ParamArgs } from 'nxrouter';
+import { createRouter } from 'nxrouter';
 
-// optional API routes definition
-interface ApiRoutes {
-    demo: {
-        posts: MethodImplementor<{
-            (id: ParamArgs): MethodImplementor;
-        }>;
-    }
+// Define response types
+type UserProfile = { id: string; name: string };
+type UserPost = { id: number; title: string };
+type SearchResult = { id: number; type: 'user' | 'post'; match: string };
+type UserList = { users: { id: string; name: string }[] };
+
+// Define a callable users node with its own methods
+interface UsersNode {
+    (id: string): {
+        profile: {
+            $get: UserProfile;
+            $put: void;
+        };
+        posts: {
+            $get: UserPost[];
+            $post: void;
+        };
+    };
+    $get: UserList; // Method on the users node itself
 }
 
-// base url endpoint
-const BASE = 'https://my-json-server.typicode.com/typicode';
+// Define route structure with response types
+interface Routes {
+    users: UsersNode;
+    search: {
+        $get: SearchResult[];
+    };
+}
 
-// nxrouter
-const client = new NxRouter<ApiRoutes>({
-    // request implementor
-    async onRequest(options) {
-        console.log(`Requesting ${options.path}`);
-
-        // here we make request using fetch api
-        const res = await fetch(`${BASE}${options.path}`, {
-            method: options.method,
-            ...options.data
-        });
-
+// Create router instance
+const api = createRouter<Routes>('https://api.example.com', {
+    // Optional response interceptor
+    interceptResponse: async (res) => {
         if (!res.ok) throw new Error(`Failed with status code ${res.status}`);
-
-        // and return json response
-        return await res.json();
+        return res.json();
     }
 });
 
-interface APIResponse {
-    id: number;
-    title: string;
+// Use the API with full type safety
+async function main() {
+    // GET /users
+    const userList = await api.users.$get();
+    // userList is typed as UserList
+
+    // GET /users/abc/profile
+    const profile = await api.users('abc').profile.$get();
+    // profile is typed as UserProfile
+
+    // GET /users/abc/posts
+    const posts = await api.users('abc').posts.$get();
+    // posts is typed as UserPost[]
+
+    // GET /search?q=dogs
+    const results = await api.search.$get({ query: { q: 'dogs' } });
+    // results is typed as SearchResult[]
+
+    // log the generated path
+    console.log(api.users('abc').profile.toString()); // /users/abc/profile
 }
-
-// initiate GET /demo/posts
-console.log(await client.api.demo.posts.get<APIResponse[]>());
-
-// initiate GET /demo/posts/1
-console.log(await client.api.demo.posts(1).get<APIResponse>());
-
-// log the value
-console.log(client.api.demo.posts(5).toString());
-// -> /demo/posts/5
 ```
 
-## Request Methods
+## HTTP Methods
 
-```js
-const client = new NxRouter<OptionalRouteDefinition>(...);
+The router supports all standard HTTP methods with the `$method` pattern:
 
-// GET
-client.api.get();
+```ts
+// GET request
+await api.endpoint.$get();
 
-// PUT
-client.api.put();
+// POST request with body
+await api.endpoint.$post({
+    body: JSON.stringify({ data: 'value' }),
+    headers: { 'Content-Type': 'application/json' }
+});
 
-// POST
-client.api.post();
+// PUT request
+await api.endpoint.$put();
 
-// PATCH
-client.api.patch();
+// DELETE request
+await api.endpoint.$delete();
 
-// DELETE
-client.api.delete();
+// PATCH request
+await api.endpoint.$patch();
 
-// OPTIONS
-client.api.options();
+// OPTIONS request
+await api.endpoint.$options();
 
-// HEAD
-client.api.head();
+// HEAD request
+await api.endpoint.$head();
 
-// TRACE
-client.api.trace();
+// TRACE request
+await api.endpoint.$trace();
+
+// CONNECT request
+await api.endpoint.$connect();
 ```
 
-## Reflection Methods
+## Query Parameters
 
-```js
-const client = new NxRouter<OptionalRouteDefinition>(...);
+You can pass query parameters using the `query` property:
 
-// path result
-client.api.toString();
-client.api.toJSON();
-client.api.valueOf();
+```ts
+// GET /search?q=term&page=2
+const results = await api.search.$get({
+    query: {
+        q: 'term',
+        page: 2
+    }
+});
+```
+
+## Request Interceptors
+
+You can intercept requests before they're sent:
+
+```ts
+const api = createRouter('https://api.example.com', {
+    interceptRequest: (url, init) => {
+        // Add headers, modify URL, etc.
+        return [
+            url,
+            {
+                ...init,
+                headers: {
+                    ...init.headers,
+                    Authorization: 'Bearer token'
+                }
+            }
+        ];
+    }
+});
+```
+
+## Response Interceptors
+
+Transform responses before they're returned:
+
+```ts
+const api = createRouter('https://api.example.com', {
+    interceptResponse: async (res) => {
+        if (!res.ok) {
+            // Handle error responses
+            const error = await res.json();
+            throw new Error(error.message);
+        }
+        return res.json();
+    }
+});
 ```
